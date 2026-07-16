@@ -20,6 +20,8 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, default="child")  # "parent" | "child"
+    parent_code = Column(String(10), unique=True, nullable=True, index=True)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("safekid_users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     linked_devices = relationship("UserDevice", back_populates="user", cascade="all, delete-orphan")

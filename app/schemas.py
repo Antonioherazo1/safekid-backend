@@ -6,6 +6,7 @@ class RegisterRequest(BaseModel):
     username: str
     password: str
     role: str = "child"
+    parent_code: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -18,6 +19,7 @@ class AuthResponse(BaseModel):
     user_id: str
     username: str
     role: str
+    parent_code: str | None = None
 
 
 class RegisterDeviceRequest(BaseModel):
