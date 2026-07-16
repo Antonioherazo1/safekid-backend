@@ -1,3 +1,4 @@
+import uuid
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -5,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import User, Device, UserDevice, DailyUsage
-from app.schemas import LinkChildRequest, ChildInfo, ChildrenListResponse
-from app.auth import get_current_user
+from app.schemas import LinkChildRequest, ChildInfo, ChildrenListResponse, RegisterChildDeviceRequest, RegisterDeviceResponse
+from app.auth import get_current_user, generate_api_key
 
 router = APIRouter(tags=["parent"])
 
@@ -56,6 +57,37 @@ async def link_child(
         today_seconds=0,
     )
 
+
+@router.post("/parent/register-child-device", response_model=RegisterDeviceResponse)
+async def register_child_device(
+    body: RegisterChildDeviceRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.role != "parent":
+        raise HTTPException(status_code=403, detail="Only parents can register child devices")
+
+    result = await db.execute(select(User).where(User.username == body.child_username))
+    child_user = result.scalar_one_or_none()
+    if child_user is None or child_user.role != "child":
+        raise HTTPException(status_code=404, detail="Child user not found")
+
+    device_id = uuid.uuid4()
+    api_key = generate_api_key(str(device_id))
+
+    device = Device(id=device_id, name=body.name, api_key=api_key)
+    db.add(device)
+    await db.flush()
+
+    child_link = UserDevice(user_id=child_user.id, device_id=device.id)
+    db.add(child_link)
+    await db.flush()
+
+    parent_link = UserDevice(user_id=user.id, device_id=device.id)
+    db.add(parent_link)
+    await db.commit()
+
+    return RegisterDeviceResponse(device_id=str(device.id), api_key=api_key, name=device.name)
 
 @router.post("/parent/set-limit")
 async def set_child_limit(

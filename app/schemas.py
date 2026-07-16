@@ -35,6 +35,11 @@ class LinkChildRequest(BaseModel):
     child_username: str
 
 
+class RegisterChildDeviceRequest(BaseModel):
+    child_username: str
+    name: str
+
+
 class ChildInfo(BaseModel):
     device_id: str
     name: str
