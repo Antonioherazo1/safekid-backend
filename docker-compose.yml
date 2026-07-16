@@ -3,8 +3,7 @@ services:
     build: .
     container_name: safekid-api
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8001:8000"
+    network_mode: host
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - API_KEY_SALT=${API_KEY_SALT}
