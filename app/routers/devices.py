@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,12 +12,15 @@ router = APIRouter(tags=["devices"])
 
 @router.post("/device/register", response_model=RegisterResponse)
 async def register_device(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    device = Device(name=body.name)
-    db.add(device)
-    await db.flush()
+    device_id = uuid.uuid4()
+    api_key = generate_api_key(str(device_id))
 
-    api_key = generate_api_key(str(device.id))
-    device.api_key = api_key
+    device = Device(
+        id=device_id,
+        name=body.name,
+        api_key=api_key,
+    )
+    db.add(device)
     await db.commit()
     await db.refresh(device)
 
