@@ -20,6 +20,8 @@ class AuthResponse(BaseModel):
     username: str
     role: str
     parent_code: str | None = None
+    device_id: str | None = None
+    api_key: str | None = None
 
 
 class RegisterDeviceRequest(BaseModel):
@@ -45,6 +47,7 @@ class RegisterChildDeviceRequest(BaseModel):
 class ChildInfo(BaseModel):
     device_id: str
     name: str
+    username: str
     api_key: str
     daily_limit_minutes: int
     today_seconds: int = 0

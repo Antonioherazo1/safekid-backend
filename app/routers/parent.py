@@ -66,6 +66,7 @@ async def list_children(
         children.append(ChildInfo(
             device_id=device_id,
             name=name,
+            username=child.username,
             api_key=api_key,
             daily_limit_minutes=daily_limit,
             today_seconds=today_seconds,
@@ -132,3 +133,24 @@ async def set_child_limit(
     await db.commit()
 
     return {"status": "ok", "daily_limit_minutes": limit_minutes}
+
+
+@router.post("/parent/delete-child")
+async def delete_child(
+    child_username: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.role != "parent":
+        raise HTTPException(status_code=403, detail="Only parents can delete children")
+
+    result = await db.execute(select(User).where(User.username == child_username))
+    child = result.scalar_one_or_none()
+    if child is None or child.role != "child":
+        raise HTTPException(status_code=404, detail="Child not found")
+    if child.parent_id != user.id:
+        raise HTTPException(status_code=403, detail="Child not linked to your account")
+
+    await db.delete(child)
+    await db.commit()
+    return {"status": "deleted"}
