@@ -28,5 +28,6 @@ app.include_router(stats.router, prefix="/api/safekid")
 
 
 @app.get("/health")
+@app.get("/api/safekid/health")
 async def health():
     return {"status": "ok"}
