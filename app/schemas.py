@@ -20,6 +20,7 @@ class AuthResponse(BaseModel):
     username: str
     role: str
     parent_code: str | None = None
+    parent_username: str | None = None
     device_id: str | None = None
     api_key: str | None = None
 

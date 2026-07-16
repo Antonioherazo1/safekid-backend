@@ -48,6 +48,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
 
+    parent_username = None
     device_id = None
     api_key = None
     if body.role == "child" and body.parent_code:
@@ -56,19 +57,21 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
             User.role == "parent",
         ))
         parent = result.scalar_one_or_none()
-        if parent:
-            user.parent_id = parent.id
-            did = uuid.uuid4()
-            device_id = str(did)
-            api_key = generate_api_key(device_id)
-            device = Device(id=did, name=f"Dispositivo de {user.username}", api_key=api_key)
-            db.add(device)
-            await db.flush()
-            link = UserDevice(user_id=user.id, device_id=device.id)
-            db.add(link)
-            await db.commit()
-            await db.refresh(device)
-            api_key = device.api_key
+        if not parent:
+            raise HTTPException(status_code=400, detail="Código de padre inválido")
+        user.parent_id = parent.id
+        parent_username = parent.username
+        did = uuid.uuid4()
+        device_id = str(did)
+        api_key = generate_api_key(device_id)
+        device = Device(id=did, name=f"Dispositivo de {user.username}", api_key=api_key)
+        db.add(device)
+        await db.flush()
+        link = UserDevice(user_id=user.id, device_id=device.id)
+        db.add(link)
+        await db.commit()
+        await db.refresh(device)
+        api_key = device.api_key
 
     token = create_access_token(str(user.id), user.username, user.role)
     return AuthResponse(
@@ -77,6 +80,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         username=user.username,
         role=user.role,
         parent_code=user.parent_code,
+        parent_username=parent_username,
         device_id=device_id,
         api_key=api_key,
     )
@@ -89,9 +93,13 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
+    parent_username = None
     device_id = None
     api_key = None
-    if user.role == "child":
+    if user.role == "child" and user.parent_id:
+        parent = await db.get(User, user.parent_id)
+        if parent:
+            parent_username = parent.username
         link_result = await db.execute(
             select(UserDevice).where(UserDevice.user_id == user.id)
             .limit(1)
@@ -110,6 +118,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         username=user.username,
         role=user.role,
         parent_code=user.parent_code,
+        parent_username=parent_username,
         device_id=device_id,
         api_key=api_key,
     )
