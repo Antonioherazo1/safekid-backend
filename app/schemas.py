@@ -52,6 +52,8 @@ class ChildInfo(BaseModel):
     api_key: str
     daily_limit_minutes: int
     today_seconds: int = 0
+    schedule_start_min: int = -1
+    schedule_end_min: int = -1
 
 
 class ChildrenListResponse(BaseModel):
@@ -90,6 +92,8 @@ class SyncResponse(BaseModel):
     status: str
     total_seconds: int
     daily_limit_minutes: int = 0
+    schedule_start_min: int = -1
+    schedule_end_min: int = -1
 
 
 class DailyStats(BaseModel):

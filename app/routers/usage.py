@@ -51,6 +51,8 @@ async def sync_usage(
         status="ok",
         total_seconds=daily.total_seconds,
         daily_limit_minutes=device.daily_limit_minutes,
+        schedule_start_min=device.schedule_start_min or -1,
+        schedule_end_min=device.schedule_end_min or -1,
     )
 
 

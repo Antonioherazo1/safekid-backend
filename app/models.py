@@ -35,6 +35,8 @@ class Device(Base):
     name = Column(String(255), nullable=False)
     api_key = Column(String(64), unique=True, nullable=False, index=True)
     daily_limit_minutes = Column(Integer, default=0)
+    schedule_start_min = Column(Integer, nullable=True)
+    schedule_end_min = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

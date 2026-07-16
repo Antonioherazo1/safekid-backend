@@ -63,6 +63,9 @@ async def list_children(
             if today_usage:
                 today_seconds = today_usage.total_seconds
 
+        s_start = device_link.device.schedule_start_min if device_link and device_link.device else -1
+        s_end = device_link.device.schedule_end_min if device_link and device_link.device else -1
+
         children.append(ChildInfo(
             device_id=device_id,
             name=name,
@@ -70,6 +73,8 @@ async def list_children(
             api_key=api_key,
             daily_limit_minutes=daily_limit,
             today_seconds=today_seconds,
+            schedule_start_min=s_start or -1,
+            schedule_end_min=s_end or -1,
         ))
 
     return ChildrenListResponse(children=children)
@@ -133,6 +138,40 @@ async def set_child_limit(
     await db.commit()
 
     return {"status": "ok", "daily_limit_minutes": limit_minutes}
+
+
+@router.post("/parent/set-schedule")
+async def set_child_schedule(
+    child_username: str,
+    start_min: int,
+    end_min: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.role != "parent":
+        raise HTTPException(status_code=403, detail="Only parents can set schedules")
+
+    result = await db.execute(select(User).where(User.username == child_username))
+    child_user = result.scalar_one_or_none()
+    if child_user is None or child_user.role != "child":
+        raise HTTPException(status_code=404, detail="Child user not found")
+
+    if child_user.parent_id != user.id:
+        raise HTTPException(status_code=403, detail="Child not linked to your account")
+
+    device_result = await db.execute(
+        select(UserDevice).where(UserDevice.user_id == child_user.id)
+        .options(selectinload(UserDevice.device))
+    )
+    link = device_result.scalar_one_or_none()
+    if link is None or link.device is None:
+        raise HTTPException(status_code=400, detail="Child has no registered device")
+
+    link.device.schedule_start_min = start_min
+    link.device.schedule_end_min = end_min
+    await db.commit()
+
+    return {"status": "ok", "schedule_start_min": start_min, "schedule_end_min": end_min}
 
 
 @router.post("/parent/delete-child")
