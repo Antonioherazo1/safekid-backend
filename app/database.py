@@ -1,4 +1,5 @@
 import os
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
@@ -24,3 +25,9 @@ async def init_db():
     async with engine.begin() as conn:
         from app.models import Device, DailyUsage, UsageSession, User, UserDevice, Command
         await conn.run_sync(Base.metadata.create_all)
+        # migrations for columns not created by create_all on existing tables
+        await conn.execute(text("""
+            ALTER TABLE safekid_devices
+            ADD COLUMN IF NOT EXISTS schedule_start_min INTEGER,
+            ADD COLUMN IF NOT EXISTS schedule_end_min INTEGER
+        """))
