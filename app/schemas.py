@@ -22,7 +22,7 @@ class AuthResponse(BaseModel):
 
 class RegisterDeviceRequest(BaseModel):
     name: str
-    username: str
+    username: str | None = None
 
 
 class RegisterDeviceResponse(BaseModel):
