@@ -57,6 +57,44 @@ async def link_child(
     )
 
 
+@router.post("/parent/set-limit")
+async def set_child_limit(
+    child_username: str,
+    limit_minutes: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.role != "parent":
+        raise HTTPException(status_code=403, detail="Only parents can set limits")
+
+    result = await db.execute(select(User).where(User.username == child_username))
+    child_user = result.scalar_one_or_none()
+    if child_user is None or child_user.role != "child":
+        raise HTTPException(status_code=404, detail="Child user not found")
+
+    result = await db.execute(
+        select(UserDevice).where(UserDevice.user_id == child_user.id)
+        .options(selectinload(UserDevice.device))
+    )
+    link = result.scalar_one_or_none()
+    if link is None:
+        raise HTTPException(status_code=400, detail="Child has no registered device")
+
+    parent_link = await db.execute(
+        select(UserDevice).where(
+            UserDevice.user_id == user.id,
+            UserDevice.device_id == link.device_id,
+        )
+    )
+    if not parent_link.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Child not linked to your account")
+
+    device = link.device
+    device.daily_limit_minutes = limit_minutes
+    await db.commit()
+
+    return {"status": "ok", "daily_limit_minutes": limit_minutes}
+
 @router.get("/parent/children", response_model=ChildrenListResponse)
 async def list_children(
     user: User = Depends(get_current_user),

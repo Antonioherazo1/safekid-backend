@@ -78,6 +78,7 @@ class SyncRequest(BaseModel):
 class SyncResponse(BaseModel):
     status: str
     total_seconds: int
+    daily_limit_minutes: int = 0
 
 
 class DailyStats(BaseModel):

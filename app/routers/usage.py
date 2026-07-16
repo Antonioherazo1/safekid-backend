@@ -47,7 +47,11 @@ async def sync_usage(
         )
 
     await db.commit()
-    return SyncResponse(status="ok", total_seconds=daily.total_seconds)
+    return SyncResponse(
+        status="ok",
+        total_seconds=daily.total_seconds,
+        daily_limit_minutes=device.daily_limit_minutes,
+    )
 
 
 
