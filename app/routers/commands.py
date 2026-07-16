@@ -22,14 +22,19 @@ async def send_command(
     import uuid
     device_id = uuid.UUID(body.to_device_id)
 
-    result = await db.execute(
-        select(UserDevice).where(
-            UserDevice.user_id == user.id,
-            UserDevice.device_id == device_id,
-        )
+    device = await db.get(Device, device_id)
+    if device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    link_result = await db.execute(
+        select(UserDevice).where(UserDevice.device_id == device_id).limit(1)
     )
-    link = result.scalar_one_or_none()
+    link = link_result.scalar_one_or_none()
     if link is None:
+        raise HTTPException(status_code=404, detail="Device not linked to any user")
+
+    child = await db.get(User, link.user_id)
+    if child is None or child.parent_id != user.id:
         raise HTTPException(status_code=404, detail="Child not linked to your account")
 
     if body.command_type not in ("block", "unblock", "start_tracking", "stop_tracking"):
