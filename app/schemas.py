@@ -62,7 +62,8 @@ class ChildrenListResponse(BaseModel):
 
 class SendCommandRequest(BaseModel):
     to_device_id: str
-    command_type: str  # block | unblock | start_tracking | stop_tracking
+    command_type: str  # block | unblock | start_tracking | stop_tracking | set_schedule
+    payload: dict | None = None
 
 
 class PendingCommand(BaseModel):

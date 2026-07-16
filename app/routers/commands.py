@@ -33,13 +33,14 @@ async def send_command(
     if child is None:
         raise HTTPException(status_code=404, detail="Child not linked to your account")
 
-    if body.command_type not in ("block", "unblock", "start_tracking", "stop_tracking"):
+    if body.command_type not in ("block", "unblock", "start_tracking", "stop_tracking", "set_schedule"):
         raise HTTPException(status_code=400, detail="Invalid command type")
 
     cmd = Command(
         from_user_id=user.id,
         to_device_id=device_id,
         command_type=body.command_type,
+        payload=body.payload,
         status="pending",
     )
     db.add(cmd)
